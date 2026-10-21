@@ -1,7 +1,8 @@
 # CueCare — Dockerfile
-# This file will be completed in Task 11 (Docker Image and Container Lifecycle)
+# Full implementation in Task 11 (Docker Image and Container Lifecycle)
+# Stack: Node.js + React (served as static files by Express)
 
-FROM eclipse-temurin:17-jre-alpine
+FROM node:18-alpine
 LABEL maintainer="Nayan Pawar <23102A0012>"
 LABEL org.opencontainers.image.title="cuecare"
 LABEL org.opencontainers.image.description="Clinic Appointment Scheduling System"
@@ -9,8 +10,6 @@ LABEL org.opencontainers.image.description="Clinic Appointment Scheduling System
 WORKDIR /app
 
 # Placeholder — full Dockerfile implemented in Task 11
-COPY target/cuecare.war app.war
+EXPOSE 5000
 
-EXPOSE 8080
-
-ENTRYPOINT ["java", "-jar", "app.war"]
+CMD ["node", "server/src/server.js"]

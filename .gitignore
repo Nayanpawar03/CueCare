@@ -1,50 +1,39 @@
-# Maven
-target/
-*.class
-*.jar
-*.war
-*.ear
-*.zip
-*.tar.gz
-*.rar
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
 
-# Maven wrapper
-!.mvn/wrapper/maven-wrapper.jar
-!.mvn/wrapper/maven-wrapper.properties
+# Build output
+client/dist/
+client/build/
 
-# IDE
-.idea/
-*.iml
-*.iws
-*.ipr
-.vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-.classpath
-.project
-.settings/
-
-# Spring Boot
-*.log
-logs/
-spring-shell.log
-
-# Database
+# Database files
+server/data/
 *.db
-*.h2.mv.db
-*.h2.trace.db
+*.sqlite
+
+# Environment files
+.env
+.env.local
+.env.*.local
+server/.env
+client/.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
 
 # OS
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Environment
-.env
-*.env.local
+# IDE
+.idea/
+.vscode/
+*.suo
+*.swp
 
-# Docker
-.dockerignore
+# Test coverage
+coverage/

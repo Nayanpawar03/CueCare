@@ -1,20 +1,18 @@
 # CueCare — Clinic Appointment Scheduling System
 
-A web-based clinic appointment scheduling system built as part of a DevOps academic project.
-The application allows patients to register, view available appointment slots, book appointments,
-receive confirmations, cancel bookings, and track appointment status.
+A full-stack clinic appointment scheduling web application built as part of a DevOps academic project. Patients can register, view available appointment slots, book appointments, receive confirmations, cancel bookings, and track appointment status.
 
 ---
 
 ## Student Details
 
-| Field          | Value                                      |
-|----------------|--------------------------------------------|
-| Name           | Nayan Pawar                                |
-| Roll Number    | 23102A0012                                 |
-| Branch         | Computer Engineering                       |
-| Subject        | DevOps Lab                                 |
-| Project Guide  | Dr. Snehal Andhare                         |
+| Field         | Value                  |
+|---------------|------------------------|
+| Name          | Nayan Pawar            |
+| Roll Number   | 23102A0012             |
+| Branch        | Computer Engineering   |
+| Subject       | DevOps Lab             |
+| Project Guide | Dr. Snehal Andhare     |
 
 ---
 
@@ -31,44 +29,17 @@ receive confirmations, cancel bookings, and track appointment status.
 
 ## Tech Stack
 
-| Area                  | Technology                        |
-|-----------------------|-----------------------------------|
-| Language / Runtime    | Java 17                           |
-| Backend Framework     | Spring Boot 3                     |
-| Build Tool            | Maven (via Maven Wrapper)         |
-| Database              | H2 (development), MySQL (prod)    |
-| Frontend              | Thymeleaf + Bootstrap 5           |
-| Deployment Target     | Tomcat (embedded) / Nginx         |
-| Version Control       | Git + GitHub                      |
-| CI/CD                 | Jenkins                           |
-| Containerization      | Docker                            |
-| Config Management     | Ansible                           |
-| Testing               | JUnit 5, Selenium WebDriver       |
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Java 17 or higher
-- Git
-
-### Local Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/Nayanpawar03/CueCare.git
-cd CueCare
-
-# Run using Maven Wrapper (downloads Maven automatically)
-./mvnw spring-boot:run        # Linux / macOS
-mvnw.cmd spring-boot:run      # Windows
-
-# Access the application
-http://localhost:8080
-http://localhost:8080/health
-```
+| Area                 | Technology                          |
+|----------------------|-------------------------------------|
+| Frontend             | React 18 + Vite + Bootstrap 5       |
+| Backend              | Node.js + Express                   |
+| Database             | SQLite (via better-sqlite3)         |
+| Build Tool           | npm                                 |
+| Version Control      | Git + GitHub                        |
+| CI/CD                | Jenkins                             |
+| Containerization     | Docker                              |
+| Config Management    | Ansible                             |
+| Testing              | Jest + Supertest (API), Selenium (UI)|
 
 ---
 
@@ -76,48 +47,101 @@ http://localhost:8080/health
 
 ```
 CueCare/
-├── .github/
-│   └── ISSUE_TEMPLATE/       # GitHub issue templates
-├── docs/                     # Project documentation
-├── src/
-│   ├── main/
-│   │   ├── java/com/cuecare/
-│   │   │   ├── controller/   # MVC controllers
-│   │   │   ├── model/        # JPA entities
-│   │   │   ├── repository/   # Spring Data repositories
-│   │   │   ├── service/      # Business logic
-│   │   │   └── CueCareApplication.java
-│   │   └── resources/
-│   │       ├── templates/    # Thymeleaf HTML templates
-│   │       ├── static/       # CSS, JS, images
-│   │       └── application.properties
-│   └── test/                 # JUnit tests
+├── client/                   ← React frontend (Vite)
+│   ├── src/
+│   │   ├── api/              ← Axios API calls
+│   │   ├── components/       ← Shared components (Navbar, etc.)
+│   │   ├── pages/            ← Page components
+│   │   │   └── patients/     ← Patient Registration pages
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── index.html
+│   └── vite.config.js
+├── server/                   ← Node.js + Express backend
+│   ├── src/
+│   │   ├── db/               ← SQLite database setup
+│   │   ├── routes/           ← Express route handlers
+│   │   └── server.js         ← Application entry point
+│   └── tests/                ← Jest + Supertest API tests
+├── docs/                     ← Project documentation
+├── .github/                  ← GitHub issue templates
 ├── Dockerfile
 ├── Jenkinsfile
 ├── .gitignore
-├── CONTRIBUTING.md
 └── README.md
 ```
 
 ---
 
-## Branching Strategy
+## Getting Started
 
-| Branch              | Purpose                                    |
-|---------------------|--------------------------------------------|
-| `main`              | Stable, release-ready code only            |
-| `develop`           | Integration branch; built by Jenkins       |
-| `feature/<name>`    | One feature per branch, merged via PR      |
-| `bugfix/<name>`     | One bug fix per branch, merged via PR      |
-| `release/<version>` | Release preparation branch                 |
+### Prerequisites
+- Node.js 18+
+- npm 9+
+- Git
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for full branching and commit message rules.
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Nayanpawar03/CueCare.git
+cd CueCare
+```
+
+### 2. Install dependencies
+
+```bash
+# Server
+cd server
+npm install
+
+# Client
+cd ../client
+npm install
+```
+
+### 3. Run the application
+
+Open two terminals:
+
+```bash
+# Terminal 1 — Backend (runs on port 5000)
+cd server
+npm run dev
+
+# Terminal 2 — Frontend (runs on port 5173)
+cd client
+npm run dev
+```
+
+### 4. Access the application
+
+| URL                              | Purpose              |
+|----------------------------------|----------------------|
+| http://localhost:5173            | React frontend       |
+| http://localhost:5000/health     | API health check     |
+| http://localhost:5000/api/patients | Patients REST API  |
 
 ---
 
 ## Running Tests
 
 ```bash
-./mvnw test           # Run all unit tests
-./mvnw verify         # Run all tests including integration
+# API tests (from server/)
+cd server
+npm test
+
+# Production build (from client/)
+cd client
+npm run build
 ```
+
+---
+
+## Branching Strategy
+
+| Branch           | Purpose                                  |
+|------------------|------------------------------------------|
+| `main`           | Single working branch (solo developer)   |
+| `feature/<name>` | Used when demonstrating Git workflows    |
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for commit message conventions.

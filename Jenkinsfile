@@ -1,6 +1,6 @@
 // CueCare — Jenkinsfile
-// This file will be completed in Task 8 (Pipeline as Code and Server Deployment)
-// Skeleton only — do not use this in a Jenkins job yet
+// Full implementation in Task 8 (Pipeline as Code and Server Deployment)
+// Stack: Node.js + React + Express + SQLite
 
 pipeline {
     agent any
@@ -15,21 +15,21 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo 'Building CueCare...'
+                echo 'Installing dependencies and building...'
                 // Full implementation in Task 8
             }
         }
 
         stage('Test') {
             steps {
-                echo 'Running tests...'
+                echo 'Running API tests...'
                 // Full implementation in Task 9/10
             }
         }
 
         stage('Deploy') {
             steps {
-                echo 'Deploying...'
+                echo 'Deploying application...'
                 // Full implementation in Task 8
             }
         }
