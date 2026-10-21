@@ -18,7 +18,7 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 
 | Task | Work item | Status |
 |-------|-----------|--------|
-| 7 | Jenkins installation and continuous integration job | In progress — Jenkins job configured; scheduled trigger verification pending. |
+| 7 | Jenkins installation and continuous integration job | Complete — Jenkins `CueCare-CI` built successfully; scheduled SCM polling triggered build #2; frontend artifacts archived. |
 | 8 | Pipeline as Code and server deployment | Not started |
 | 9 | Selenium test design and local execution | Not started |
 | 10 | Continuous testing in Jenkins | Not started |
@@ -44,5 +44,6 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 
 - Jenkins 2.580.1 is installed locally and configured at `http://localhost:8080`.
 - The `CueCare-CI` Freestyle job checks out `develop`, polls GitHub every five minutes, runs the Ant `ci` target, and archives `client/dist/**`.
-- Build #1 completed successfully and archived `index.html`, CSS, and JavaScript artifacts; the build was started manually.
-- Scheduled polling is configured; an SCM-triggered build is still required as trigger evidence.
+- Build #1 completed successfully and archived `index.html`, CSS, and JavaScript artifacts; it was started manually.
+- Build #2 completed successfully after the five-minute SCM polling interval, providing the scheduled-trigger evidence; it also archived the frontend artifacts.
+- Build logs show the Ant `ci` target completed with `BUILD SUCCESSFUL` and Jenkins finished with `SUCCESS`.
