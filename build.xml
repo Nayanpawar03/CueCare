@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="cuecare-ci" default="ci" basedir=".">
+    <description>Ant wrapper for CueCare's Node.js and React continuous integration build.</description>
+
+    <target name="server-test" description="Install server dependencies and run API tests">
+        <exec executable="cmd.exe" dir="${basedir}/server" failonerror="true">
+            <arg value="/c" />
+            <arg value="npm ci" />
+        </exec>
+        <exec executable="cmd.exe" dir="${basedir}/server" failonerror="true">
+            <arg value="/c" />
+            <arg value="npm test" />
+        </exec>
+    </target>
+
+    <target name="client-build" description="Install client dependencies and create the production build">
+        <exec executable="cmd.exe" dir="${basedir}/client" failonerror="true">
+            <arg value="/c" />
+            <arg value="npm ci" />
+        </exec>
+        <exec executable="cmd.exe" dir="${basedir}/client" failonerror="true">
+            <arg value="/c" />
+            <arg value="npm run build" />
+        </exec>
+    </target>
+
+    <target name="ci" depends="server-test,client-build" description="Run the complete CueCare CI build" />
+</project>
