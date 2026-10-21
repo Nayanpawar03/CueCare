@@ -198,3 +198,7 @@ Write-Host "Deployment environment: $Environment"
 Write-Host "CueCare application URL: $applicationUrl"
 Write-Host "CueCare health check: $proxyHealthUrl returned $($proxyHealth.status)"
 Write-Host "Release directory: $releaseRoot"
+
+# End the PowerShell process explicitly so Jenkins' durable PowerShell step
+# records completion even though the API and Nginx processes remain running.
+exit 0
