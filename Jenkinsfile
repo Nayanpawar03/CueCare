@@ -26,6 +26,11 @@ pipeline {
             defaultValue: 'C:\\nginx-1.30.6',
             description: 'Folder containing nginx.exe and conf\\mime.types.'
         )
+        string(
+            name: 'MAVEN_COMMAND',
+            defaultValue: 'C:\\Users\\Nayan\\AppData\\Local\\Temp\\apache-maven-3.9.16\\bin\\mvn.cmd',
+            description: 'Path to mvn.cmd on the Windows Jenkins agent.'
+        )
     }
 
     stages {
@@ -49,6 +54,23 @@ pipeline {
                 dir('client') {
                     bat 'npm ci'
                     bat 'npm run build'
+                }
+            }
+        }
+
+        stage('Selenium UI Tests') {
+            steps {
+                script {
+                    def mavenCommand = params.MAVEN_COMMAND?.trim() ?: 'C:\\Users\\Nayan\\AppData\\Local\\Temp\\apache-maven-3.9.16\\bin\\mvn.cmd'
+                    withEnv(["SELENIUM_MAVEN_COMMAND=${mavenCommand}"]) {
+                    powershell '''
+                        $ErrorActionPreference = 'Stop'
+                        if (-not (Test-Path -LiteralPath $env:SELENIUM_MAVEN_COMMAND)) {
+                            throw "Maven command not found: $env:SELENIUM_MAVEN_COMMAND"
+                        }
+                        .\\tests\\selenium\\run-local.ps1 -MavenCommand $env:SELENIUM_MAVEN_COMMAND
+                    '''
+                    }
                 }
             }
         }
@@ -102,8 +124,12 @@ pipeline {
     }
 
     post {
+        always {
+            junit testResults: 'tests/selenium/target/surefire-reports/TEST-*.xml', allowEmptyResults: true
+            archiveArtifacts artifacts: 'tests/selenium/target/site/surefire-report.html,tests/selenium/target/surefire-reports/**,tests/selenium/target/screenshots/**', allowEmptyArchive: true, fingerprint: true
+        }
         success {
-            echo "CueCare ${params.DEPLOY_ENV} deployment completed successfully."
+            echo "CueCare ${params.DEPLOY_ENV} deployment completed successfully after Selenium tests passed."
         }
         failure {
             echo 'Pipeline failed. Review the stage console output for the failing step.'

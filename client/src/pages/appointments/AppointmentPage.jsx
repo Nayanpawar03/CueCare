@@ -332,7 +332,7 @@ export default function AppointmentPage() {
                                                         </div>
                                                     </div>
                                                     <span className={`badge ${statusBadge(appointment.status)}`}>
-                                                        {appointment.status}
+                                                        {appointment.status === 'REQUESTED' ? 'PENDING' : appointment.status}
                                                     </span>
                                                 </div>
                                                 {(appointment.status === 'REQUESTED' || appointment.status === 'CONFIRMED') && (

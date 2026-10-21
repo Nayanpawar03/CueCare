@@ -8,11 +8,11 @@ export default defineConfig({
         // Proxy API calls to the Express backend during development
         proxy: {
             '/api': {
-                target: 'http://localhost:5000',
+                target: process.env.VITE_API_TARGET || 'http://localhost:5000',
                 changeOrigin: true,
             },
             '/health': {
-                target: 'http://localhost:5000',
+                target: process.env.VITE_API_TARGET || 'http://localhost:5000',
                 changeOrigin: true,
             }
         }
