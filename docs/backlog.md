@@ -21,7 +21,7 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 | 7 | Jenkins installation and continuous integration job | Complete — Jenkins `CueCare-CI` built successfully; scheduled SCM polling triggered build #2; frontend artifacts archived. |
 | 8 | Pipeline as Code and server deployment | Complete — Jenkins Pipeline build #4 finished successfully; packaged artifact archived; parameterized `dev` deployment served through Nginx at `http://127.0.0.1:8081/`. |
 | 9 | Selenium test design and local execution | Complete — five Maven Selenium journeys passed locally; Surefire HTML report and failure screenshot mechanism are in place. |
-| 10 | Continuous testing in Jenkins | In progress — Selenium stage, JUnit report publishing, and test artifact archiving added before deployment. |
+| 10 | Continuous testing in Jenkins | Complete — build #5 failed at Selenium tests and skipped deployment; defect correction `91bffe0` was pushed; build #6 passed and deployed. |
 | 11 | Docker image and container lifecycle | Not started |
 | 12 | Jenkins-Docker continuous deployment | Not started |
 | 13 | Configuration management script | Not started |
@@ -67,3 +67,12 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 - Local run on 21 October 2026 completed with `BUILD SUCCESS`: 5 tests, 0 failures, 0 errors, and 0 skipped.
 - Surefire report: `tests/selenium/target/site/surefire-report.html`; detailed results: `tests/selenium/target/surefire-reports/`.
 - Failure screenshots are captured by the JUnit extension in `tests/selenium/target/screenshots/`; the mechanism was exercised during test setup, while the final clean run passed all journeys.
+
+## Task 10 Continuous Testing Progress Notes
+
+- Added a `Selenium UI Tests` stage between Build and Package in the Jenkins pipeline. A failed test exits the stage, so Package and Deploy do not run.
+- The pipeline publishes Surefire XML results with Jenkins JUnit and archives the HTML report, Surefire reports, and failure screenshots on every run.
+- Build #5 failed after the appointment status label was deliberately changed from `REQUESTED` to `PENDING`; its test report and failure screenshots were archived, and Deploy was skipped.
+- Corrected the UI to display canonical appointment status labels in commit `91bffe0` (`fix: preserve canonical appointment status labels`).
+- Build #6 completed successfully after the correction. Jenkins shows a green result, the test trend is green, and `cuecare-dev-6.zip` was archived.
+- The same correction was verified locally with Maven: 5 tests passed, 0 failures, 0 errors, and 0 skipped.

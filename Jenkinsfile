@@ -1,4 +1,4 @@
-// CueCare Pipeline as Code — Task 8
+// CueCare Pipeline as Code and Continuous Testing — Tasks 8 and 10
 // Runs on the Windows Jenkins agent configured for the Task 7 job.
 
 pipeline {
