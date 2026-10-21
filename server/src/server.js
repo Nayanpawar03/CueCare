@@ -4,6 +4,7 @@ const path = require('path');
 
 // Import routes
 const patientRoutes = require('./routes/patients');
+const appointmentRoutes = require('./routes/appointments');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -21,6 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 // ── API Routes ────────────────────────────────────────────────────────────────
 
 app.use('/api/patients', patientRoutes);
+app.use('/api/appointments', appointmentRoutes);
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
