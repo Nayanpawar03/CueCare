@@ -19,7 +19,7 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 | Task | Work item | Status |
 |-------|-----------|--------|
 | 7 | Jenkins installation and continuous integration job | Complete — Jenkins `CueCare-CI` built successfully; scheduled SCM polling triggered build #2; frontend artifacts archived. |
-| 8 | Pipeline as Code and server deployment | Not started |
+| 8 | Pipeline as Code and server deployment | In progress — Jenkinsfile, package stage, and parameterized Nginx deployment script prepared; Nginx setup and successful pipeline run pending. |
 | 9 | Selenium test design and local execution | Not started |
 | 10 | Continuous testing in Jenkins | Not started |
 | 11 | Docker image and container lifecycle | Not started |
@@ -47,3 +47,10 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 - Build #1 completed successfully and archived `index.html`, CSS, and JavaScript artifacts; it was started manually.
 - Build #2 completed successfully after the five-minute SCM polling interval, providing the scheduled-trigger evidence; it also archived the frontend artifacts.
 - Build logs show the Ant `ci` target completed with `BUILD SUCCESSFUL` and Jenkins finished with `SUCCESS`.
+
+## Task 8 Pipeline Progress Notes
+
+- Replaced the starter `Jenkinsfile` with Declarative Pipeline stages for checkout, build and test, package, and deployment.
+- Added `DEPLOY_ENV` (`dev` or `staging`), `DEPLOY_ROOT`, and `NGINX_HOME` parameters.
+- Added a Windows deployment script that stages the React build and Express API, keeps SQLite data in a shared folder, seeds demo appointment slots, configures Nginx, and checks the deployed `/health` endpoint.
+- Pending: extract the official Windows Nginx distribution to `C:\nginx`, create a Jenkins Pipeline job pointing to `Jenkinsfile`, and capture a successful deployment run and browser evidence.
