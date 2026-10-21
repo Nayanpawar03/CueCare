@@ -1,8 +1,9 @@
 const request = require('supertest');
-const app = require('../src/server');
 
-// Use a separate in-memory test DB so we don't touch development data
+// Set this before importing the app; the app loads the database on import.
 process.env.DB_PATH = ':memory:';
+
+const app = require('../src/server');
 
 describe('Patient API', () => {
 
