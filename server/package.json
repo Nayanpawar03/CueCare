@@ -6,11 +6,12 @@
     "scripts": {
         "start": "node src/server.js",
         "dev": "nodemon src/server.js",
-        "test": "node --experimental-vm-modules node_modules/.bin/jest --runInBand",
-        "build": "node scripts/build-check.js"
+        "test": "jest --runInBand",
+        "build": "node src/scripts/build-check.js",
+        "seed:appointments": "node src/scripts/seed-appointments.js"
     },
     "dependencies": {
-        "better-sqlite3": "9.4.3",
+        "better-sqlite3": "^11.8.1",
         "cors": "2.8.5",
         "express": "4.18.3",
         "express-validator": "7.0.1"
