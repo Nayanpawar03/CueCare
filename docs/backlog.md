@@ -12,7 +12,7 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 | MVP-04 | High | Confirm an appointment request | A requested appointment can be confirmed and its status is displayed. | Implemented — API tests passed. |
 | MVP-05 | High | Cancel an appointment | A requested or confirmed appointment can be cancelled; its slot becomes available again. | Implemented — API tests passed. |
 | MVP-06 | High | Track appointment status | A patient can view appointment date, doctor, and REQUESTED, CONFIRMED, or CANCELLED status. | Implemented — API tests and browser workflow verified. |
-| MVP-07 | High | Demonstrate Git collaboration and prepare a release baseline | Complete the second feature branch workflow, create and resolve a documented merge conflict, create a version tag, and verify a clean release-ready source baseline. | In progress. |
+| MVP-07 | High | Demonstrate Git collaboration and prepare a release baseline | Complete the second feature branch workflow, create and resolve a documented merge conflict, create a version tag, and verify a clean release-ready source baseline. | Complete — conflict resolved; `v1.0.0` tag created; Task 6 PR #2 merged into `develop`. |
 
 ## Upcoming DevOps Assignment Work
 
@@ -33,7 +33,9 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 - Appointment API tests: 15 passed.
 - Client production build: passed.
 - Appointment workflow: exercised in the browser; request and status display were observed.
-- Release and collaboration evidence: pending until the conflict resolution and tag are completed.
+- Git collaboration: add/add conflict resolved in commit `4074e5f`.
+- Release tag: `v1.0.0` points to `4074e5f` (the conflict-resolution merge commit); the tagged source is included in `develop`.
+- Task 6 PR #2 merged; local `develop` was verified aligned with `origin/develop` at `ef45e4e`, with a clean working tree before this backlog correction.
 
 ## Git Collaboration Evidence
 
