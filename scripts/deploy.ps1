@@ -87,14 +87,16 @@ if (Test-Path -LiteralPath $pidFile) {
     $oldPidText = (Get-Content -LiteralPath $pidFile -Raw).Trim()
     $oldPid = 0
     if ([int]::TryParse($oldPidText, [ref]$oldPid)) {
-        $oldProcess = Get-CimInstance Win32_Process -Filter "ProcessId = $oldPid" -ErrorAction SilentlyContinue
-        if ($oldProcess -and $oldProcess.Name -eq 'node.exe' -and $oldProcess.CommandLine -like "*$DeployRoot\$Environment\releases*\server\src\server.js*") {
+        $oldProcess = Get-Process -Id $oldPid -ErrorAction SilentlyContinue
+        if ($oldProcess -and $oldProcess.ProcessName -eq 'node' -and $oldProcess.Path -eq $nodeCommand.Source) {
+            Write-Host "Stopping the previous CueCare API process (PID $oldPid)."
             Stop-Process -Id $oldPid -Force -ErrorAction SilentlyContinue
             Start-Sleep -Seconds 1
         }
     }
 }
 
+Write-Host "Starting CueCare API on port $apiPort..."
 $env:PORT = "$apiPort"
 $env:DB_PATH = $databasePath
 $env:CLIENT_URL = "http://localhost:$webPort"
@@ -111,6 +113,7 @@ Set-Content -LiteralPath $pidFile -Value $apiProcess.Id -Encoding ascii
 
 $apiHealthUrl = "http://127.0.0.1:$apiPort/health"
 $apiReady = $false
+Write-Host "Waiting for API health check at $apiHealthUrl..."
 for ($attempt = 0; $attempt -lt 30; $attempt++) {
     Start-Sleep -Seconds 1
     try {
@@ -127,6 +130,7 @@ for ($attempt = 0; $attempt -lt 30; $attempt++) {
 if (-not $apiReady) {
     throw "CueCare API did not become healthy at $apiHealthUrl. Check $apiErr."
 }
+Write-Host 'CueCare API health check passed.'
 
 $toNginxPath = {
     param([string]$Path)
@@ -142,23 +146,37 @@ Set-Content -LiteralPath $nginxConfig -Value $configText -Encoding ascii
 
 $nginxPrefix = "$((& $toNginxPath $NginxHome))/"
 $nginxConfigPath = & $toNginxPath $nginxConfig
+$nginxStdOut = Join-Path $nginxStateRoot 'nginx.out.log'
+$nginxStdErr = Join-Path $nginxStateRoot 'nginx.err.log'
+
+Write-Host 'Validating the generated Nginx configuration...'
+& $nginxExe -p $nginxPrefix -c $nginxConfigPath -t
+if ($LASTEXITCODE -ne 0) {
+    throw "Nginx configuration validation failed. Review $nginxStdErr and $nginxStateRoot\error.log."
+}
+
 $nginxProcesses = Get-Process -Name nginx -ErrorAction SilentlyContinue
 if ($nginxProcesses) {
+    Write-Host 'Reloading the existing Nginx process...'
     & $nginxExe -p $nginxPrefix -c $nginxConfigPath -s reload
     if ($LASTEXITCODE -ne 0) {
         throw 'Nginx could not reload the generated CueCare configuration. Stop any existing Nginx process and rerun the pipeline.'
     }
 }
 else {
+    Write-Host "Starting Nginx from $nginxExe..."
     Start-Process -FilePath $nginxExe `
         -WorkingDirectory $NginxHome `
         -ArgumentList @('-p', $nginxPrefix, '-c', $nginxConfigPath) `
-        -WindowStyle Hidden
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $nginxStdOut `
+        -RedirectStandardError $nginxStdErr | Out-Null
 }
 
-$applicationUrl = "http://localhost:$webPort/"
-$proxyHealthUrl = "http://localhost:$webPort/health"
+$applicationUrl = "http://127.0.0.1:$webPort/"
+$proxyHealthUrl = "http://127.0.0.1:$webPort/health"
 $webReady = $false
+Write-Host "Waiting for Nginx health check at $proxyHealthUrl..."
 for ($attempt = 0; $attempt -lt 20; $attempt++) {
     Start-Sleep -Seconds 1
     try {

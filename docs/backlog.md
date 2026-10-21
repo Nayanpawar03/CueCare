@@ -19,7 +19,7 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 | Task | Work item | Status |
 |-------|-----------|--------|
 | 7 | Jenkins installation and continuous integration job | Complete — Jenkins `CueCare-CI` built successfully; scheduled SCM polling triggered build #2; frontend artifacts archived. |
-| 8 | Pipeline as Code and server deployment | In progress — Jenkinsfile, package stage, and parameterized Nginx deployment script prepared; Nginx setup and successful pipeline run pending. |
+| 8 | Pipeline as Code and server deployment | In progress — Jenkinsfile, package stage, and parameterized Nginx deployment script prepared; Nginx is installed and the deployment run is being debugged. |
 | 9 | Selenium test design and local execution | Not started |
 | 10 | Continuous testing in Jenkins | Not started |
 | 11 | Docker image and container lifecycle | Not started |
@@ -53,4 +53,6 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 - Replaced the starter `Jenkinsfile` with Declarative Pipeline stages for checkout, build and test, package, and deployment.
 - Added `DEPLOY_ENV` (`dev` or `staging`), `DEPLOY_ROOT`, and `NGINX_HOME` parameters.
 - Added a Windows deployment script that stages the React build and Express API, keeps SQLite data in a shared folder, seeds demo appointment slots, configures Nginx, and checks the deployed `/health` endpoint.
-- Pending: extract the official Windows Nginx distribution to `C:\nginx`, create a Jenkins Pipeline job pointing to `Jenkinsfile`, and capture a successful deployment run and browser evidence.
+- Nginx 1.30.6 is extracted to `C:\nginx-1.30.6`; the Jenkins Pipeline job is configured from SCM with `Jenkinsfile`.
+- The latest run installed production dependencies, seeded demo doctors and slots, started the API, and generated the Nginx configuration; final health checks and a successful deployment are not yet confirmed.
+- Added stage progress messages, Nginx configuration validation, and separate Nginx output logs to help diagnose the stalled run.
