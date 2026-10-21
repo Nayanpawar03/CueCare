@@ -74,16 +74,28 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                // Keep the Node API process alive after this Jenkins step exits.
-                withEnv(['JENKINS_NODE_COOKIE=dontKillMe']) {
-                    powershell '''
-                        $ErrorActionPreference = 'Stop'
-                        .\\scripts\\deploy.ps1 `
-                            -Environment $env:DEPLOY_ENV `
-                            -DeployRoot $env:DEPLOY_ROOT `
-                            -NginxHome $env:NGINX_HOME `
-                            -BuildNumber $env:BUILD_NUMBER
-                    '''
+                script {
+                    // Jenkins applies parameters after the first run; use these defaults on that first run.
+                    def deploymentEnvironment = params.DEPLOY_ENV?.trim() ?: 'dev'
+                    def deploymentRoot = params.DEPLOY_ROOT?.trim() ?: 'C:\\CueCareDeploy'
+                    def nginxHome = params.NGINX_HOME?.trim() ?: 'C:\\nginx-1.30.6'
+
+                    // Keep the Node API process alive after this Jenkins step exits.
+                    withEnv([
+                        "DEPLOY_ENV=${deploymentEnvironment}",
+                        "DEPLOY_ROOT=${deploymentRoot}",
+                        "NGINX_HOME=${nginxHome}",
+                        'JENKINS_NODE_COOKIE=dontKillMe'
+                    ]) {
+                        powershell '''
+                            $ErrorActionPreference = 'Stop'
+                            .\\scripts\\deploy.ps1 `
+                                -Environment $env:DEPLOY_ENV `
+                                -DeployRoot $env:DEPLOY_ROOT `
+                                -NginxHome $env:NGINX_HOME `
+                                -BuildNumber $env:BUILD_NUMBER
+                        '''
+                    }
                 }
             }
         }
