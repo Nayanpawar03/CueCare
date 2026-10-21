@@ -12,13 +12,13 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 | MVP-04 | High | Confirm an appointment request | A requested appointment can be confirmed and its status is displayed. | Implemented — API tests passed. |
 | MVP-05 | High | Cancel an appointment | A requested or confirmed appointment can be cancelled; its slot becomes available again. | Implemented — API tests passed. |
 | MVP-06 | High | Track appointment status | A patient can view appointment date, doctor, and REQUESTED, CONFIRMED, or CANCELLED status. | Implemented — API tests and browser workflow verified. |
-| MVP-07 | High | Demonstrate Git collaboration and prepare a release baseline | Complete the second feature branch workflow, create and resolve a documented merge conflict, create a version tag, and verify a clean release-ready source baseline. | In progress. |
+| MVP-07 | High | Demonstrate Git collaboration and prepare a release baseline | Complete the second feature branch workflow, create and resolve a documented merge conflict, create a version tag, and verify a clean release-ready source baseline. | Complete — conflict resolved; `v1.0.0` tagged; Task 6 PR #2 merged into `develop`. |
 
 ## Upcoming DevOps Assignment Work
 
 | Task | Work item | Status |
 |-------|-----------|--------|
-| 7 | Jenkins installation and continuous integration job | Not started |
+| 7 | Jenkins installation and continuous integration job | In progress — Jenkins job configured; scheduled trigger verification pending. |
 | 8 | Pipeline as Code and server deployment | Not started |
 | 9 | Selenium test design and local execution | Not started |
 | 10 | Continuous testing in Jenkins | Not started |
@@ -33,8 +33,16 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 - Appointment API tests: 15 passed.
 - Client production build: passed.
 - Appointment workflow: exercised in the browser; request and status display were observed.
-- Release and collaboration evidence: pending until the conflict resolution and tag are completed.
+- Git collaboration conflict resolved in commit `4074e5f`; `v1.0.0` points to that source baseline, which is included in `develop`.
+- Task 6 PR #2 merged into `develop`.
 
 ## Git Collaboration Evidence
 
 - An add/add conflict was created by competing Task 6 backlog files and resolved by retaining the complete MVP backlog from feature/appointment-booking.
+
+## Task 7 CI Progress Notes
+
+- Jenkins 2.580.1 is installed locally and configured at `http://localhost:8080`.
+- The `CueCare-CI` Freestyle job checks out `develop`, polls GitHub every five minutes, runs the Ant `ci` target, and archives `client/dist/**`.
+- Build #1 completed successfully and archived `index.html`, CSS, and JavaScript artifacts; the build was started manually.
+- Scheduled polling is configured; an SCM-triggered build is still required as trigger evidence.
