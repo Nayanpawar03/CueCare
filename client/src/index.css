@@ -1,0 +1,37 @@
+/* CueCare — Global Styles */
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Card hover effect */
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Table header */
+.table thead th {
+    background-color: #0d6efd;
+    color: #fff;
+    font-weight: 500;
+    border: none;
+}
+
+/* Form focus ring */
+.form-control:focus,
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+}
+
+/* Navbar brand */
+.navbar-brand {
+    font-size: 1.4rem;
+    letter-spacing: 0.4px;
+}
