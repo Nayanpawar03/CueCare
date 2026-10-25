@@ -29,7 +29,7 @@ Run from the Ubuntu WSL terminal:
 
 ```bash
 cd "/mnt/c/Users/Nayan/Music/Devops Project/CueCare/ansible"
-ansible-playbook -i inventory.ini task14-provision.yml
+ansible-playbook -i inventory.ini task14-provision.yml --ask-become-pass
 ```
 
 The first successful provisioning run completed with:
@@ -46,7 +46,7 @@ The stable release was installed and the API health endpoint returned `{"status"
 The same playbook was run a second time without changing its inputs:
 
 ```bash
-ansible-playbook -i inventory.ini task14-provision.yml
+ansible-playbook -i inventory.ini task14-provision.yml --ask-become-pass
 ```
 
 The second run made no changes and completed successfully:
@@ -61,7 +61,7 @@ cuecare-wsl : ok=17 changed=0 unreachable=0 failed=0 skipped=0 rescued=0 ignored
 The rollback playbook was executed:
 
 ```bash
-ansible-playbook -i inventory.ini task14-rollback.yml
+ansible-playbook -i inventory.ini task14-rollback.yml --ask-become-pass
 ```
 
 It switched `current` to candidate `rollback-test`, whose entry point intentionally throws an error. The health request failed with connection refused. Ansible then ran its rescue tasks: it repointed `current` to `stable-1`, restarted `cuecare-task14-api`, and verified health.
