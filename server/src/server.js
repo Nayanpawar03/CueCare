@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 // Import routes
 const patientRoutes = require('./routes/patients');
@@ -28,6 +29,17 @@ app.use('/api/appointments', appointmentRoutes);
 app.get('/health', (req, res) => {
     res.json({ status: 'UP', application: 'CueCare', version: '1.0.0' });
 });
+
+// In the Docker image the built React app is served by this same process.
+// Local development continues to use the separate Vite dev server.
+const frontendDirectory = path.join(__dirname, '..', 'public');
+const frontendIndex = path.join(frontendDirectory, 'index.html');
+if (fs.existsSync(frontendIndex)) {
+    app.use(express.static(frontendDirectory));
+    app.get(/^(?!\/api\/).*/, (req, res) => {
+        res.sendFile(frontendIndex);
+    });
+}
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((req, res) => {

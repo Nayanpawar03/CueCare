@@ -1,0 +1,171 @@
+---
+- name: Configure the CueCare API node
+  hosts: cuecare_target
+  become: true
+  gather_facts: true
+
+  vars:
+    cuecare_user: cuecare
+    cuecare_group: cuecare
+    cuecare_root: /opt/cuecare
+    cuecare_server_root: /opt/cuecare/server
+    cuecare_data_dir: /var/lib/cuecare
+    cuecare_log_dir: /var/log/cuecare
+    cuecare_config_dir: /etc/cuecare
+    cuecare_api_port: 5000
+    cuecare_source_root: "{{ playbook_dir }}/.."
+
+  pre_tasks:
+    - name: Require a systemd based Ubuntu target
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['os_family'] == 'Debian'
+          - ansible_facts['service_mgr'] == 'systemd'
+        fail_msg: >-
+          This playbook expects Ubuntu/Debian with systemd. For Ubuntu on WSL,
+          enable systemd in /etc/wsl.conf, run `wsl --shutdown` from Windows,
+          and reopen the Ubuntu distribution.
+
+  tasks:
+    - name: Install CueCare runtime and native build prerequisites
+      ansible.builtin.apt:
+        name:
+          - nodejs
+          - npm
+          - build-essential
+          - python3
+          - sqlite3
+          - libsqlite3-dev
+          - ufw
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Read the installed Node.js version
+      ansible.builtin.command: node --version
+      register: cuecare_node_version
+      changed_when: false
+
+    - name: Require Node.js 18 or newer
+      ansible.builtin.assert:
+        that:
+          - cuecare_node_version.stdout is version('v18.0.0', '>=')
+        fail_msg: "CueCare requires Node.js 18 or later; found {{ cuecare_node_version.stdout }}."
+
+    - name: Create the CueCare service group
+      ansible.builtin.group:
+        name: "{{ cuecare_group }}"
+        system: true
+        state: present
+
+    - name: Create the restricted CueCare service account
+      ansible.builtin.user:
+        name: "{{ cuecare_user }}"
+        group: "{{ cuecare_group }}"
+        system: true
+        create_home: false
+        shell: /usr/sbin/nologin
+        state: present
+
+    - name: Create application, configuration, database, and log directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ cuecare_user }}"
+        group: "{{ cuecare_group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "{{ cuecare_root }}", mode: '0755' }
+        - { path: "{{ cuecare_server_root }}", mode: '0755' }
+        - { path: "{{ cuecare_config_dir }}", mode: '0750' }
+        - { path: "{{ cuecare_data_dir }}", mode: '0750' }
+        - { path: "{{ cuecare_log_dir }}", mode: '0750' }
+
+    - name: Copy CueCare API source
+      ansible.builtin.copy:
+        src: "{{ cuecare_source_root }}/server/src/"
+        dest: "{{ cuecare_server_root }}/src/"
+        owner: "{{ cuecare_user }}"
+        group: "{{ cuecare_group }}"
+        mode: preserve
+
+    - name: Copy API package manifest
+      ansible.builtin.copy:
+        src: "{{ cuecare_source_root }}/server/package.json"
+        dest: "{{ cuecare_server_root }}/package.json"
+        owner: "{{ cuecare_user }}"
+        group: "{{ cuecare_group }}"
+        mode: '0644'
+      notify: Install production dependencies
+
+    - name: Copy API package lock
+      ansible.builtin.copy:
+        src: "{{ cuecare_source_root }}/server/package-lock.json"
+        dest: "{{ cuecare_server_root }}/package-lock.json"
+        owner: "{{ cuecare_user }}"
+        group: "{{ cuecare_group }}"
+        mode: '0644'
+      notify: Install production dependencies
+
+    - name: Install dependencies before configuring the service
+      ansible.builtin.meta: flush_handlers
+
+    - name: Configure CueCare API environment
+      ansible.builtin.template:
+        src: templates/cuecare.env.j2
+        dest: "{{ cuecare_config_dir }}/cuecare.env"
+        owner: root
+        group: "{{ cuecare_group }}"
+        mode: '0640'
+      notify: Restart CueCare API
+
+    - name: Install the CueCare systemd service unit
+      ansible.builtin.template:
+        src: templates/cuecare-api.service.j2
+        dest: /etc/systemd/system/cuecare-api.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart CueCare API
+
+    - name: Allow the CueCare API port through UFW
+      ansible.builtin.command: "ufw allow {{ cuecare_api_port }}/tcp"
+      register: cuecare_firewall_rule
+      changed_when: "'Skipping adding existing rule' not in cuecare_firewall_rule.stdout"
+
+    - name: Enable and start CueCare API
+      ansible.builtin.systemd_service:
+        name: cuecare-api
+        daemon_reload: true
+        enabled: true
+        state: started
+
+    - name: Apply service changes notified by templates
+      ansible.builtin.meta: flush_handlers
+
+    - name: Wait for CueCare API health endpoint
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ cuecare_api_port }}/health"
+        method: GET
+        status_code: 200
+        return_content: true
+      register: cuecare_health
+      retries: 10
+      delay: 2
+      until: cuecare_health.json.status | default('') == 'UP'
+
+  handlers:
+    - name: Install production dependencies
+      ansible.builtin.command: npm ci --omit=dev
+      args:
+        chdir: "{{ cuecare_server_root }}"
+      become_user: "{{ cuecare_user }}"
+      environment:
+        HOME: /tmp
+
+    - name: Restart CueCare API
+      ansible.builtin.systemd_service:
+        name: cuecare-api
+        daemon_reload: true
+        enabled: true
+        state: restarted

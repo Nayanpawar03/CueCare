@@ -1,0 +1,22 @@
+[Unit]
+Description=CueCare Clinic Appointment API
+After=network.target
+
+[Service]
+Type=simple
+User={{ cuecare_user }}
+Group={{ cuecare_group }}
+WorkingDirectory={{ cuecare_server_root }}
+EnvironmentFile={{ cuecare_config_dir }}/cuecare.env
+ExecStart=/usr/bin/node {{ cuecare_server_root }}/src/server.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths={{ cuecare_data_dir }} {{ cuecare_log_dir }}
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

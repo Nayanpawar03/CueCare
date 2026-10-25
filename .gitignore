@@ -37,3 +37,6 @@ desktop.ini
 
 # Test coverage
 coverage/
+
+# Maven test output and failure screenshots
+**/target/

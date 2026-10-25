@@ -1,0 +1,118 @@
+---
+- name: Demonstrate automatic rollback to the previous stable CueCare release
+  hosts: cuecare_target
+  become: true
+  gather_facts: false
+
+  vars:
+    cuecare14_user: cuecare14
+    cuecare14_group: cuecare14
+    cuecare14_root: /opt/cuecare-task14
+    cuecare14_stable_id: stable-1
+    cuecare14_stable_root: "{{ cuecare14_root }}/releases/{{ cuecare14_stable_id }}"
+    cuecare14_candidate_id: rollback-test
+    cuecare14_candidate_root: "{{ cuecare14_root }}/releases/{{ cuecare14_candidate_id }}"
+    cuecare14_current: "{{ cuecare14_root }}/current"
+    cuecare14_port: 5003
+
+  tasks:
+    - name: Confirm the previous stable release is present
+      ansible.builtin.stat:
+        path: "{{ cuecare14_stable_root }}/server/src/server.js"
+      register: cuecare14_stable_entry
+
+    - name: Require an existing stable API release
+      ansible.builtin.assert:
+        that:
+          - cuecare14_stable_entry.stat.exists
+        fail_msg: Run task14-provision.yml first to create stable-1.
+
+    - name: Create an isolated failed candidate release folder
+      ansible.builtin.file:
+        path: "{{ cuecare14_candidate_root }}/server/src"
+        state: directory
+        owner: "{{ cuecare14_user }}"
+        group: "{{ cuecare14_group }}"
+        mode: '0755'
+
+    - name: Install the intentionally broken candidate entry point
+      ansible.builtin.copy:
+        src: fixtures/broken-server.js
+        dest: "{{ cuecare14_candidate_root }}/server/src/server.js"
+        owner: "{{ cuecare14_user }}"
+        group: "{{ cuecare14_group }}"
+        mode: '0644'
+
+    - name: Attempt the candidate and automatically recover the stable release
+      block:
+        - name: Point current release to the failed candidate
+          ansible.builtin.file:
+            src: "{{ cuecare14_candidate_root }}"
+            dest: "{{ cuecare14_current }}"
+            state: link
+            force: true
+            owner: "{{ cuecare14_user }}"
+            group: "{{ cuecare14_group }}"
+
+        - name: Restart API on the candidate release
+          ansible.builtin.systemd_service:
+            name: cuecare-task14-api
+            daemon_reload: true
+            state: restarted
+
+        - name: Require candidate health (expected to fail for rollback demonstration)
+          ansible.builtin.uri:
+            url: "http://127.0.0.1:{{ cuecare14_port }}/health"
+            method: GET
+            status_code: 200
+            return_content: true
+          register: cuecare14_candidate_health
+          retries: 3
+          delay: 2
+          until: cuecare14_candidate_health.json.status | default('') == 'UP'
+
+      rescue:
+        - name: Point current release back to the previous stable version
+          ansible.builtin.file:
+            src: "{{ cuecare14_stable_root }}"
+            dest: "{{ cuecare14_current }}"
+            state: link
+            force: true
+            owner: "{{ cuecare14_user }}"
+            group: "{{ cuecare14_group }}"
+
+        - name: Restart API on the restored stable release
+          ansible.builtin.systemd_service:
+            name: cuecare-task14-api
+            daemon_reload: true
+            enabled: true
+            state: restarted
+
+        - name: Verify health after rollback
+          ansible.builtin.uri:
+            url: "http://127.0.0.1:{{ cuecare14_port }}/health"
+            method: GET
+            status_code: 200
+            return_content: true
+          register: cuecare14_recovery_health
+          retries: 10
+          delay: 2
+          until: cuecare14_recovery_health.json.status | default('') == 'UP'
+
+        - name: Confirm current points to the previous stable release
+          ansible.builtin.command: readlink -f {{ cuecare14_current }}
+          register: cuecare14_current_release
+          changed_when: false
+
+        - name: Assert stable release and health were restored
+          ansible.builtin.assert:
+            that:
+              - cuecare14_current_release.stdout == cuecare14_stable_root
+              - cuecare14_recovery_health.json.status == 'UP'
+            fail_msg: Rollback did not restore stable-1 and a healthy API.
+
+        - name: Report successful rollback and recovery
+          ansible.builtin.debug:
+            msg: >-
+              Candidate {{ cuecare14_candidate_id }} failed health; current was
+              restored to {{ cuecare14_current_release.stdout }} and the API is UP.

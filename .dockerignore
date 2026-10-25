@@ -1,0 +1,16 @@
+.git
+.github
+**/node_modules
+**/dist
+**/coverage
+**/target
+**/data
+**/*.db
+**/*.db-shm
+**/*.db-wal
+artifacts
+deploy
+docs
+tests
+scripts
+*.log

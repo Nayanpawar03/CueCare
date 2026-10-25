@@ -39,6 +39,16 @@ function statusBadge(status) {
     return 'bg-warning text-dark';
 }
 
+const appointmentStatusLabels = Object.freeze({
+    REQUESTED: 'REQUESTED',
+    CONFIRMED: 'CONFIRMED',
+    CANCELLED: 'CANCELLED',
+});
+
+function displayAppointmentStatus(status) {
+    return appointmentStatusLabels[status] || status;
+}
+
 export default function AppointmentPage() {
     const [doctors, setDoctors] = useState([]);
     const [patients, setPatients] = useState([]);
@@ -332,7 +342,7 @@ export default function AppointmentPage() {
                                                         </div>
                                                     </div>
                                                     <span className={`badge ${statusBadge(appointment.status)}`}>
-                                                        {appointment.status}
+                                                        {displayAppointmentStatus(appointment.status)}
                                                     </span>
                                                 </div>
                                                 {(appointment.status === 'REQUESTED' || appointment.status === 'CONFIRMED') && (

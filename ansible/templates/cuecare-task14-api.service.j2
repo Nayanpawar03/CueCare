@@ -1,0 +1,22 @@
+[Unit]
+Description=CueCare Task 14 API Reliability Target
+After=network.target
+
+[Service]
+Type=simple
+User=cuecare14
+Group=cuecare14
+WorkingDirectory=/opt/cuecare-task14/current/server
+EnvironmentFile=/etc/cuecare-task14/cuecare.env
+ExecStart=/usr/bin/node /opt/cuecare-task14/current/server/src/server.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/cuecare-task14 /var/log/cuecare-task14
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

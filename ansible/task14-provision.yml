@@ -1,0 +1,159 @@
+---
+- name: Provision a clean CueCare Task 14 target and deploy the stable release
+  hosts: cuecare_target
+  become: true
+  gather_facts: true
+
+  vars:
+    cuecare14_user: cuecare14
+    cuecare14_group: cuecare14
+    cuecare14_root: /opt/cuecare-task14
+    cuecare14_release_id: stable-1
+    cuecare14_release_root: "{{ cuecare14_root }}/releases/{{ cuecare14_release_id }}"
+    cuecare14_current: "{{ cuecare14_root }}/current"
+    cuecare14_data_dir: /var/lib/cuecare-task14
+    cuecare14_log_dir: /var/log/cuecare-task14
+    cuecare14_cache_dir: /var/cache/cuecare-task14/npm
+    cuecare14_config_dir: /etc/cuecare-task14
+    cuecare14_port: 5003
+    cuecare14_source_root: "{{ playbook_dir }}/.."
+
+  pre_tasks:
+    - name: Require Ubuntu/Debian and systemd
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['os_family'] == 'Debian'
+          - ansible_facts['service_mgr'] == 'systemd'
+        fail_msg: Task 14 expects the systemd based Ubuntu WSL node.
+
+  tasks:
+    - name: Install runtime and native module build prerequisites
+      ansible.builtin.apt:
+        name:
+          - nodejs
+          - npm
+          - build-essential
+          - python3
+          - sqlite3
+          - libsqlite3-dev
+          - ufw
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Require Node.js 18 or newer
+      ansible.builtin.command: node --version
+      register: cuecare14_node_version
+      changed_when: false
+
+    - name: Assert supported Node.js version
+      ansible.builtin.assert:
+        that:
+          - cuecare14_node_version.stdout is version('v18.0.0', '>=')
+
+    - name: Create Task 14 service group
+      ansible.builtin.group:
+        name: "{{ cuecare14_group }}"
+        system: true
+        state: present
+
+    - name: Create Task 14 restricted service user
+      ansible.builtin.user:
+        name: "{{ cuecare14_user }}"
+        group: "{{ cuecare14_group }}"
+        system: true
+        create_home: false
+        shell: /usr/sbin/nologin
+        state: present
+
+    - name: Create clean deployment, release, data, log, and configuration directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ cuecare14_user }}"
+        group: "{{ cuecare14_group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "{{ cuecare14_root }}/releases", mode: '0755' }
+        - { path: "{{ cuecare14_release_root }}/server", mode: '0755' }
+        - { path: "{{ cuecare14_config_dir }}", mode: '0750' }
+        - { path: "{{ cuecare14_data_dir }}", mode: '0750' }
+        - { path: "{{ cuecare14_log_dir }}", mode: '0750' }
+        - { path: "{{ cuecare14_cache_dir }}", mode: '0750' }
+
+    - name: Deploy API source into the stable release
+      ansible.builtin.copy:
+        src: "{{ cuecare14_source_root }}/server/src/"
+        dest: "{{ cuecare14_release_root }}/server/src/"
+        owner: "{{ cuecare14_user }}"
+        group: "{{ cuecare14_group }}"
+        mode: preserve
+
+    - name: Deploy package manifests into the stable release
+      ansible.builtin.copy:
+        src: "{{ cuecare14_source_root }}/server/{{ item }}"
+        dest: "{{ cuecare14_release_root }}/server/{{ item }}"
+        owner: "{{ cuecare14_user }}"
+        group: "{{ cuecare14_group }}"
+        mode: '0644'
+      loop:
+        - package.json
+        - package-lock.json
+
+    - name: Install production dependencies for the stable release
+      ansible.builtin.command: npm ci --omit=dev
+      args:
+        chdir: "{{ cuecare14_release_root }}/server"
+        creates: "{{ cuecare14_release_root }}/server/node_modules/.package-lock.json"
+      become_user: "{{ cuecare14_user }}"
+      environment:
+        HOME: /tmp
+        npm_config_cache: "{{ cuecare14_cache_dir }}"
+
+    - name: Configure the Task 14 API environment
+      ansible.builtin.template:
+        src: templates/cuecare-task14.env.j2
+        dest: "{{ cuecare14_config_dir }}/cuecare.env"
+        owner: root
+        group: "{{ cuecare14_group }}"
+        mode: '0640'
+
+    - name: Set current release to the stable version
+      ansible.builtin.file:
+        src: "{{ cuecare14_release_root }}"
+        dest: "{{ cuecare14_current }}"
+        state: link
+        force: true
+        owner: "{{ cuecare14_user }}"
+        group: "{{ cuecare14_group }}"
+
+    - name: Install Task 14 API service unit
+      ansible.builtin.template:
+        src: templates/cuecare-task14-api.service.j2
+        dest: /etc/systemd/system/cuecare-task14-api.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Allow the Task 14 API port through UFW
+      ansible.builtin.command: "ufw allow {{ cuecare14_port }}/tcp"
+      register: cuecare14_firewall_rule
+      changed_when: "'Skipping adding existing rule' not in cuecare14_firewall_rule.stdout"
+
+    - name: Enable and start Task 14 API service
+      ansible.builtin.systemd_service:
+        name: cuecare-task14-api
+        daemon_reload: true
+        enabled: true
+        state: started
+
+    - name: Verify deployed API health
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ cuecare14_port }}/health"
+        method: GET
+        status_code: 200
+        return_content: true
+      register: cuecare14_health
+      retries: 10
+      delay: 2
+      until: cuecare14_health.json.status | default('') == 'UP'
