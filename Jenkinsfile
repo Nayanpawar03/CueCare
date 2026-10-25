@@ -1,4 +1,4 @@
-// CueCare Pipeline as Code and Continuous Testing — Tasks 8 and 10
+// CueCare Pipeline as Code, Continuous Testing, and Docker CD — Tasks 8, 10, and 12
 // Runs on the Windows Jenkins agent configured for the Task 7 job.
 
 pipeline {
@@ -17,19 +17,14 @@ pipeline {
             description: 'Select the local deployment environment and its ports.'
         )
         string(
-            name: 'DEPLOY_ROOT',
-            defaultValue: 'C:\\CueCareDeploy',
-            description: 'Folder used for application releases, logs, and the generated Nginx configuration.'
-        )
-        string(
-            name: 'NGINX_HOME',
-            defaultValue: 'C:\\nginx-1.30.6',
-            description: 'Folder containing nginx.exe and conf\\mime.types.'
-        )
-        string(
             name: 'MAVEN_COMMAND',
             defaultValue: 'C:\\Users\\Nayan\\AppData\\Local\\Temp\\apache-maven-3.9.16\\bin\\mvn.cmd',
             description: 'Path to mvn.cmd on the Windows Jenkins agent.'
+        )
+        string(
+            name: 'DOCKER_CLI',
+            defaultValue: 'C:\\Users\\Nayan\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe',
+            description: 'Path to docker.exe on the Windows Jenkins agent.'
         )
     }
 
@@ -94,28 +89,43 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Docker Build') {
             steps {
                 script {
-                    // Jenkins applies parameters after the first run; use these defaults on that first run.
                     def deploymentEnvironment = params.DEPLOY_ENV?.trim() ?: 'dev'
-                    def deploymentRoot = params.DEPLOY_ROOT?.trim() ?: 'C:\\CueCareDeploy'
-                    def nginxHome = params.NGINX_HOME?.trim() ?: 'C:\\nginx-1.30.6'
-
-                    // Keep the Node API process alive after this Jenkins step exits.
+                    def dockerCommand = params.DOCKER_CLI?.trim() ?: 'C:\\Users\\Nayan\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
+                    def imageTag = "cuecare:${deploymentEnvironment}-${env.BUILD_NUMBER}"
                     withEnv([
-                        "DEPLOY_ENV=${deploymentEnvironment}",
-                        "DEPLOY_ROOT=${deploymentRoot}",
-                        "NGINX_HOME=${nginxHome}",
-                        'JENKINS_NODE_COOKIE=dontKillMe'
+                        "DOCKER_CLI_PATH=${dockerCommand}",
+                        'DOCKER_HOST=npipe:////./pipe/dockerDesktopLinuxEngine',
+                        "DOCKER_IMAGE=${imageTag}"
                     ]) {
+                        bat '''
+                            if not exist "%DOCKER_CLI_PATH%" (
+                                echo Docker CLI not found: %DOCKER_CLI_PATH%
+                                exit /b 1
+                            )
+                            "%DOCKER_CLI_PATH%" --host "%DOCKER_HOST%" version
+                            if errorlevel 1 exit /b %ERRORLEVEL%
+                            "%DOCKER_CLI_PATH%" --host "%DOCKER_HOST%" build --tag "%DOCKER_IMAGE%" .
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Docker Deploy') {
+            steps {
+                script {
+                    def deploymentEnvironment = params.DEPLOY_ENV?.trim() ?: 'dev'
+                    def dockerCommand = params.DOCKER_CLI?.trim() ?: 'C:\\Users\\Nayan\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
+                    withEnv(["DOCKER_CLI_PATH=${dockerCommand}"]) {
                         powershell '''
                             $ErrorActionPreference = 'Stop'
-                            .\\scripts\\deploy.ps1 `
+                            .\\scripts\\deploy-docker.ps1 `
                                 -Environment $env:DEPLOY_ENV `
-                                -DeployRoot $env:DEPLOY_ROOT `
-                                -NginxHome $env:NGINX_HOME `
-                                -BuildNumber $env:BUILD_NUMBER
+                                -BuildNumber $env:BUILD_NUMBER `
+                                -DockerCommand $env:DOCKER_CLI_PATH
                         '''
                     }
                 }
@@ -129,7 +139,7 @@ pipeline {
             archiveArtifacts artifacts: 'tests/selenium/target/site/surefire-report.html,tests/selenium/target/surefire-reports/**,tests/selenium/target/screenshots/**', allowEmptyArchive: true, fingerprint: true
         }
         success {
-            echo "CueCare ${params.DEPLOY_ENV} deployment completed successfully after Selenium tests passed."
+            echo "CueCare ${params.DEPLOY_ENV} Docker deployment completed successfully after Selenium tests passed."
         }
         failure {
             echo 'Pipeline failed. Review the stage console output for the failing step.'

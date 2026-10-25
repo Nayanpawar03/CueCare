@@ -23,7 +23,7 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 | 9 | Selenium test design and local execution | Complete — five Maven Selenium journeys passed locally; Surefire HTML report and failure screenshot mechanism are in place. |
 | 10 | Continuous testing in Jenkins | Complete — build #5 failed at Selenium tests and skipped deployment; defect correction `91bffe0` was pushed; build #6 passed and deployed. |
 | 11 | Docker image and container lifecycle | Complete — `cuecare:task11` built; `cuecare-task11` ran healthy on port 8082; stop/start lifecycle and persistent SQLite volume verified. |
-| 12 | Jenkins-Docker continuous deployment | Not started |
+| 12 | Jenkins-Docker continuous deployment | In progress — Jenkinsfile builds a versioned image and deploys through Compose; local deployment verified at `http://127.0.0.1:8083/`; Jenkins service build pending. |
 | 13 | Configuration management script | Not started |
 | 14 | Automated provisioning and reliability validation | Not started |
 | 15 | End-to-end release, documentation, and viva | Not started |
