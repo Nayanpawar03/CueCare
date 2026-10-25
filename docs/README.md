@@ -12,5 +12,6 @@
 | docs/task10.md                   | Jenkins continuous testing and failure gate  |
 | docs/task11.md                   | Docker image and container lifecycle         |
 | docs/task12.md                   | Jenkins-Docker continuous deployment         |
+| docs/task13.md                   | Ansible configuration management             |
 
 _Documents will be added as tasks progress._
