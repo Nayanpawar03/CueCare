@@ -13,5 +13,6 @@
 | docs/task11.md                   | Docker image and container lifecycle         |
 | docs/task12.md                   | Jenkins-Docker continuous deployment         |
 | docs/task13.md                   | Ansible configuration management             |
+| docs/task14.md                   | Automated provisioning and reliability       |
 
 _Documents will be added as tasks progress._

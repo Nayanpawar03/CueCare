@@ -25,7 +25,7 @@ This backlog tracks the clinic appointment MVP and the DevOps assignment work. S
 | 11 | Docker image and container lifecycle | Complete — `cuecare:task11` built; `cuecare-task11` ran healthy on port 8082; stop/start lifecycle and persistent SQLite volume verified. |
 | 12 | Jenkins-Docker continuous deployment | Complete — Jenkins build #8 built `cuecare:dev-8`, deployed healthy container `cuecare-dev`, and verified the application at `http://127.0.0.1:8083/`. |
 | 13 | Configuration management script | Complete — Ansible provisioned Ubuntu WSL; Node.js 22.22.1, service user/directories, UFW port rule, and systemd API service configured; first run succeeded (`ok=18`, `changed=13`, `failed=0`) and health returned `UP`. |
-| 14 | Automated provisioning and reliability validation | Not started |
+| 14 | Automated provisioning and reliability validation | Complete — isolated `stable-1` provisioned; second Ansible run had `changed=0`; health returned `UP`; deliberately broken candidate was rolled back and `stable-1` recovered (`rescued=1`, `failed=0`). |
 | 15 | End-to-end release, documentation, and viva | Not started |
 
 ## Task 6 Verification Notes
