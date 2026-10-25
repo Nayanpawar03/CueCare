@@ -17,6 +17,11 @@ if (-not (Test-Path -LiteralPath $DockerCommand -PathType Leaf)) {
     throw "Docker CLI not found: $DockerCommand"
 }
 
+$composeCommand = Join-Path (Split-Path -Parent $DockerCommand) 'docker-compose.exe'
+if (-not (Test-Path -LiteralPath $composeCommand -PathType Leaf)) {
+    throw "Docker Compose executable not found beside the Docker CLI: $composeCommand"
+}
+
 $dockerHost = 'npipe:////./pipe/dockerDesktopLinuxEngine'
 $projectName = "cuecare-$Environment"
 $containerName = "cuecare-$Environment"
@@ -55,10 +60,29 @@ function Invoke-Docker {
     }
 }
 
+function Invoke-DockerCompose {
+    param([string[]]$ComposeArguments)
+
+    Write-Host "> docker-compose $($ComposeArguments -join ' ')"
+    $previousErrorPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $composeOutput = & $composeCommand @ComposeArguments 2>&1
+        $composeExitCode = $LASTEXITCODE
+        foreach ($line in $composeOutput) { Write-Host $line }
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorPreference
+    }
+    if ($composeExitCode -ne 0) {
+        throw "Docker Compose command failed with exit code $composeExitCode."
+    }
+}
+
 Push-Location $repoRoot
 try {
-    Invoke-Docker -DockerArguments @(
-        'compose', '--project-name', $projectName,
+    Invoke-DockerCompose -ComposeArguments @(
+        '--project-name', $projectName,
         'up', '--detach', '--no-build', '--force-recreate', '--remove-orphans'
     )
 }

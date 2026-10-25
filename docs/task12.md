@@ -23,7 +23,7 @@ The `DOCKER_CLI` parameter points Jenkins to the local Docker CLI:
 C:\Users\Nayan\AppData\Local\Programs\DockerDesktop\resources\bin\docker.exe
 ```
 
-The pipeline targets the Docker Desktop Linux engine over `npipe:////./pipe/dockerDesktopLinuxEngine`. The existing Task 11 container remains on port `8082`; Jenkins deploys `dev` on port `8083` and `staging` on port `8084`. The Compose project has a separate named SQLite volume for each environment.
+The pipeline targets the Docker Desktop Linux engine over `npipe:////./pipe/dockerDesktopLinuxEngine`. Since Jenkins runs as `LocalSystem`, the deployment script invokes Docker Desktop's standalone `docker-compose.exe` beside `docker.exe` rather than relying on the interactive user's Docker CLI plugin configuration. The existing Task 11 container remains on port `8082`; Jenkins deploys `dev` on port `8083` and `staging` on port `8084`. The Compose project has a separate named SQLite volume for each environment.
 
 ## Local Deployment Check
 
@@ -31,7 +31,7 @@ The versioned image `cuecare:dev-11` built successfully. Running `scripts/deploy
 
 ## Jenkins Run and Evidence
 
-The Jenkins service runs as `LocalSystem`. Its Docker CLI and named-pipe access still need verification by running the updated `CueCare-Pipeline` job from Jenkins after this change is pushed.
+The Jenkins service runs as `LocalSystem`. The first Jenkins attempt built the Docker image but failed when it tried to find Docker Compose through the user-profile plugin configuration. The deployment script was updated to use the standalone Compose executable. The updated Jenkins job still needs to be rerun to confirm deployment from the service account.
 
 **[Insert Screenshot 1 here: Jenkins build showing successful Docker Build and Docker Deploy stages.]**
 
