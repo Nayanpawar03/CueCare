@@ -31,11 +31,21 @@ The versioned image `cuecare:dev-11` built successfully. Running `scripts/deploy
 
 ## Jenkins Run and Evidence
 
-The Jenkins service runs as `LocalSystem`. The first Jenkins attempt built the Docker image but failed when it tried to find Docker Compose through the user-profile plugin configuration. The deployment script was updated to use the standalone Compose executable. The updated Jenkins job still needs to be rerun to confirm deployment from the service account.
+The Jenkins service runs as `LocalSystem`. The first Jenkins attempt built the Docker image but failed when it tried to find Docker Compose through the user-profile plugin configuration. The deployment script was updated to use the standalone Compose executable. Jenkins build #8 then completed successfully after the Task 10 Selenium tests passed.
+
+| Run detail | Result |
+|---|---|
+| Jenkins build | #8 — `Finished: SUCCESS` |
+| Docker image | `cuecare:dev-8` |
+| Container | `cuecare-dev` — healthy |
+| Application URL | `http://127.0.0.1:8083/` |
+| Health check | `http://127.0.0.1:8083/health` returned `UP` |
+
+The pipeline's Package stage archives the versioned ZIP. Jenkins post actions recorded the JUnit results and archived artifacts after deployment.
 
 **[Insert Screenshot 1 here: Jenkins build showing successful Docker Build and Docker Deploy stages.]**
 
-**[Insert Screenshot 2 here: Jenkins console output showing the versioned image, healthy container, application URL, and health response.]**
+**[Insert Screenshot 2 here: Jenkins build #8 console output showing `cuecare:dev-8`, healthy container, application URL, health response, and `Finished: SUCCESS`.]**
 
 **[Insert Screenshot 3 here: Docker Desktop Containers view showing the Jenkins-managed `cuecare-dev` container running.]**
 
@@ -43,5 +53,6 @@ The Jenkins service runs as `LocalSystem`. The first Jenkins attempt built the D
 
 - Jenkins pipeline stages for versioned Docker image build and Compose deployment.
 - Deployment script with health checks and environment-specific ports.
-- Successful Jenkins run and archived release package (pending Jenkins execution).
-- Deployed application URL and Docker container evidence (pending Jenkins execution).
+- Successful Jenkins build #8 after the Selenium test stage.
+- Healthy Docker deployment at `http://127.0.0.1:8083/` with health endpoint returning `UP`.
+- Archived release ZIP and Docker container evidence.
