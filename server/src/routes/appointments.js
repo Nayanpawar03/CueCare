@@ -59,6 +59,10 @@ router.get('/slots',
                 WHERE a.slot_id = s.id
                   AND a.status IN ('REQUESTED', 'CONFIRMED')
             )`,
+            `NOT EXISTS (
+                SELECT 1 FROM unavailable_appointment_slots u
+                WHERE u.slot_id = s.id
+            )`,
         ];
         const values = [];
 
@@ -138,6 +142,10 @@ router.post('/',
                     FROM appointment_slots s
                     JOIN doctors d ON d.id = s.doctor_id
                     WHERE s.id = ? AND d.is_active = 1
+                      AND NOT EXISTS (
+                        SELECT 1 FROM unavailable_appointment_slots u
+                        WHERE u.slot_id = s.id
+                      )
                 `).get(slotId);
                 if (!slot) {
                     return { status: 404, body: { success: false, message: 'Appointment slot not found' } };
@@ -203,6 +211,98 @@ router.patch('/:id/cancel',
     param('id').isInt({ min: 1 }).withMessage('Appointment ID must be a positive integer'),
     handleValidation,
     (req, res) => updateStatus(req, res, 'CANCELLED')
+);
+
+// Clinic-side action: block the booked slot and move the patient to the nearest
+// future opening with the same doctor or another doctor in the same specialty.
+router.post('/:id/doctor-unavailable',
+    param('id').isInt({ min: 1 }).withMessage('Appointment ID must be a positive integer'),
+    handleValidation,
+    (req, res) => {
+        const appointmentId = Number(req.params.id);
+
+        try {
+            const outcome = db.transaction(() => {
+                const appointment = getAppointment(appointmentId);
+                if (!appointment) {
+                    return { status: 404, body: { success: false, message: 'Appointment not found' } };
+                }
+                if (!['REQUESTED', 'CONFIRMED'].includes(appointment.status)) {
+                    return { status: 409, body: { success: false, message: 'Only an active appointment can be rescheduled' } };
+                }
+
+                db.prepare(`
+                    INSERT OR IGNORE INTO unavailable_appointment_slots (slot_id, reason)
+                    VALUES (?, ?)
+                `).run(appointment.slot_id, req.body?.reason?.trim() || 'Doctor unavailable');
+
+                const alternative = db.prepare(`
+                    SELECT s.id
+                    FROM appointment_slots s
+                    JOIN doctors d ON d.id = s.doctor_id
+                    WHERE d.is_active = 1
+                      AND d.specialty = ?
+                      AND s.id != ?
+                      AND (
+                        s.appointment_date > date('now', 'localtime')
+                        OR (s.appointment_date = date('now', 'localtime')
+                            AND s.start_time > time('now', 'localtime'))
+                      )
+                      AND NOT EXISTS (
+                        SELECT 1 FROM appointments a
+                        WHERE a.slot_id = s.id
+                          AND a.status IN ('REQUESTED', 'CONFIRMED')
+                      )
+                      AND NOT EXISTS (
+                        SELECT 1 FROM unavailable_appointment_slots u
+                        WHERE u.slot_id = s.id
+                      )
+                    ORDER BY
+                      CASE WHEN d.id = ? THEN 0 ELSE 1 END,
+                      ABS(julianday(s.appointment_date || ' ' || s.start_time)
+                          - julianday(? || ' ' || ?)),
+                      s.appointment_date, s.start_time
+                    LIMIT 1
+                `).get(
+                    appointment.specialty,
+                    appointment.slot_id,
+                    appointment.doctor_id,
+                    appointment.appointment_date,
+                    appointment.start_time
+                );
+
+                if (!alternative) {
+                    db.prepare(`
+                        UPDATE appointments
+                        SET status = 'CANCELLED', updated_at = datetime('now')
+                        WHERE id = ?
+                    `).run(appointmentId);
+                    return {
+                        appointment: getAppointment(appointmentId),
+                        rescheduled: false,
+                        message: 'No suitable future slot was available in this specialty. The appointment was cancelled; please contact the clinic to arrange another time.',
+                    };
+                }
+
+                db.prepare(`
+                    UPDATE appointments
+                    SET slot_id = ?, updated_at = datetime('now')
+                    WHERE id = ?
+                `).run(alternative.id, appointmentId);
+
+                return {
+                    appointment: getAppointment(appointmentId),
+                    rescheduled: true,
+                    message: 'Doctor unavailable. The appointment was moved to the nearest suitable opening.',
+                };
+            })();
+
+            if (outcome.status) return res.status(outcome.status).json(outcome.body);
+            return res.json({ success: true, ...outcome });
+        } catch (err) {
+            return res.status(500).json({ success: false, message: 'Could not reschedule the appointment' });
+        }
+    }
 );
 
 function updateStatus(req, res, nextStatus) {

@@ -17,3 +17,6 @@ export const confirmAppointment = (id) =>
 
 export const cancelAppointment = (id) =>
     axios.patch(`${BASE}/${id}/cancel`);
+
+export const markDoctorUnavailable = (id) =>
+    axios.post(`${BASE}/${id}/doctor-unavailable`);
