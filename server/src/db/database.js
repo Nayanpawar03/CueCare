@@ -75,6 +75,13 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_appointments_patient
     ON appointments(patient_id);
+
+  CREATE TABLE IF NOT EXISTS unavailable_appointment_slots (
+    slot_id     INTEGER PRIMARY KEY
+                REFERENCES appointment_slots(id) ON DELETE RESTRICT,
+    marked_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    reason      TEXT
+  );
 `);
 
 module.exports = db;

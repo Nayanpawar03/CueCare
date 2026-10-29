@@ -1,9 +1,20 @@
 const db = require('../db/database');
 
-const demoDoctors = [
-    { name: 'Dr. Demo One', specialty: 'General Medicine' },
-    { name: 'Dr. Demo Two', specialty: 'Pediatrics' },
+const clinicDoctors = [
+    { name: 'Dr. Aanya Mehta', specialty: 'General Medicine' },
+    { name: 'Dr. Arjun Rao', specialty: 'Pediatrics' },
+    { name: 'Dr. Kavya Iyer', specialty: 'Cardiology' },
+    { name: 'Dr. Rohan Shah', specialty: 'Dermatology' },
+    { name: 'Dr. Neha Kapoor', specialty: 'Orthopedics' },
+    { name: 'Dr. Sameer Patel', specialty: 'ENT' },
 ];
+
+// Rename the original sample doctors in place so their existing slots and
+// appointment history remain attached to the same doctor records.
+const legacyDoctorNames = new Map([
+    ['Dr. Aanya Mehta', 'Dr. Demo One'],
+    ['Dr. Arjun Rao', 'Dr. Demo Two'],
+]);
 
 function formatDate(date) {
     const year = date.getFullYear();
@@ -25,18 +36,28 @@ const seed = db.transaction(() => {
     const findDoctor = db.prepare(
         'SELECT id FROM doctors WHERE name = ?'
     );
+    const renameDoctor = db.prepare(
+        'UPDATE doctors SET name = ?, specialty = ? WHERE id = ?'
+    );
     const insertSlot = db.prepare(`
         INSERT OR IGNORE INTO appointment_slots
             (doctor_id, appointment_date, start_time, end_time)
         VALUES (?, ?, ?, ?)
     `);
 
-    const doctors = demoDoctors.map((doctor) => {
+    const doctors = clinicDoctors.map((doctor) => {
         let savedDoctor = findDoctor.get(doctor.name);
+
+        if (!savedDoctor) {
+            const legacyName = legacyDoctorNames.get(doctor.name);
+            if (legacyName) savedDoctor = findDoctor.get(legacyName);
+        }
 
         if (!savedDoctor) {
             const result = insertDoctor.run(doctor.name, doctor.specialty);
             savedDoctor = { id: result.lastInsertRowid };
+        } else {
+            renameDoctor.run(doctor.name, doctor.specialty, savedDoctor.id);
         }
 
         return savedDoctor;
@@ -72,7 +93,7 @@ const seed = db.transaction(() => {
 try {
     const result = seed();
     console.log(
-        `Seed complete: ${result.doctorCount} demo doctors; ` +
+        `Seed complete: ${result.doctorCount} clinic doctors; ` +
         `${result.addedSlots} new appointment slots added.`
     );
 } finally {

@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getPatients } from '../../api/patients';
+import { sendAppointmentEmail } from '../../api/email';
 import {
     cancelAppointment,
     confirmAppointment,
     getAvailableSlots,
     getDoctors,
     getPatientAppointments,
+    markDoctorUnavailable,
     requestAppointment,
 } from '../../api/appointments';
 
@@ -28,9 +30,12 @@ function displayDate(value) {
 }
 
 function errorMessage(error) {
-    return error.response?.data?.message
-        || error.response?.data?.errors?.[0]?.msg
-        || 'The request could not be completed. Please try again.';
+    if (!error.response) {
+        return 'Could not reach the CueCare API. Check that the backend is running on localhost:5000.';
+    }
+    return error.response.data?.message
+        || error.response.data?.errors?.[0]?.msg
+        || `The request failed (HTTP ${error.response.status}). Please try again.`;
 }
 
 function statusBadge(status) {
@@ -114,7 +119,7 @@ export default function AppointmentPage() {
         return () => { active = false; };
     }, [patientId]);
 
-    async function refreshSlots() {
+    async function refreshSlots({ reportError = true } = {}) {
         setError('');
         setLoading(true);
         try {
@@ -123,19 +128,19 @@ export default function AppointmentPage() {
             const response = await getAvailableSlots(filters);
             setSlots(response.data.data);
         } catch (loadError) {
-            setError(errorMessage(loadError));
+            if (reportError) setError(errorMessage(loadError));
         } finally {
             setLoading(false);
         }
     }
 
-    async function refreshAppointments() {
+    async function refreshAppointments({ reportError = true } = {}) {
         if (!patientId) return;
         try {
             const response = await getPatientAppointments(patientId);
             setAppointments(response.data.data);
         } catch (loadError) {
-            setError(errorMessage(loadError));
+            if (reportError) setError(errorMessage(loadError));
         }
     }
 
@@ -166,10 +171,56 @@ export default function AppointmentPage() {
         setMessage('');
         setBusyAppointmentId(appointmentId);
         try {
-            if (action === 'confirm') await confirmAppointment(appointmentId);
-            else await cancelAppointment(appointmentId);
-            setMessage(`Appointment #${appointmentId} ${action === 'confirm' ? 'confirmed' : 'cancelled'}.`);
-            await Promise.all([refreshSlots(), refreshAppointments()]);
+            let result;
+            if (action === 'confirm') result = await confirmAppointment(appointmentId);
+            else if (action === 'doctor-unavailable') result = await markDoctorUnavailable(appointmentId);
+            else result = await cancelAppointment(appointmentId);
+
+            const updatedAppointment = action === 'doctor-unavailable'
+                ? result.data.appointment
+                : result.data.data;
+            setError('');
+            setAppointments((current) => current.map((appointment) => (
+                appointment.id === updatedAppointment.id
+                    ? { ...appointment, ...updatedAppointment }
+                    : appointment
+            )));
+            const patient = patients.find((item) => item.id === updatedAppointment.patient_id);
+            async function sendStatusEmail(notificationType) {
+                if (!patient) return ' Patient email could not be found.';
+                try {
+                    const emailResult = await sendAppointmentEmail({
+                        appointment: updatedAppointment,
+                        patient,
+                        notificationType,
+                    });
+                    return emailResult.sent
+                        ? ` An email was sent to ${patient.email}.`
+                        : ' Email notifications are not configured yet.';
+                } catch {
+                    return ' The appointment changed, but its email could not be sent.';
+                }
+            }
+
+            if (action === 'confirm') {
+                const emailNote = await sendStatusEmail('Appointment confirmed');
+                setMessage(`Appointment #${appointmentId} confirmed.${emailNote}`);
+            } else if (action === 'doctor-unavailable') {
+                const emailNote = await sendStatusEmail(
+                    result.data.rescheduled ? 'Appointment rescheduled' : 'Appointment cancelled'
+                );
+                setMessage(`${result.data.message}${emailNote}`);
+            } else {
+                const emailNote = await sendStatusEmail('Appointment cancelled');
+                setMessage(`Appointment #${appointmentId} cancelled.${emailNote}`);
+            }
+            // The status change has already succeeded. A transient failure in
+            // either follow-up read must not replace its success message with
+            // a misleading red error banner.
+            await Promise.all([
+                refreshSlots({ reportError: false }),
+                refreshAppointments({ reportError: false }),
+            ]);
         } catch (statusError) {
             setError(errorMessage(statusError));
         } finally {
@@ -193,7 +244,17 @@ export default function AppointmentPage() {
                 </Link>
             </div>
 
-            {error && <div className="alert alert-danger" role="alert">{error}</div>}
+            {error && (
+                <div className="alert alert-danger d-flex justify-content-between align-items-start gap-3" role="alert">
+                    <span>{error}</span>
+                    <button
+                        className="btn-close"
+                        type="button"
+                        aria-label="Dismiss error"
+                        onClick={() => setError('')}
+                    />
+                </div>
+            )}
             {message && <div className="alert alert-success" role="status">{message}</div>}
 
             {patients.length === 0 && !loading ? (
@@ -364,6 +425,15 @@ export default function AppointmentPage() {
                                                             onClick={() => handleStatusChange(appointment.id, 'cancel')}
                                                         >
                                                             Cancel
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-sm btn-outline-warning"
+                                                            type="button"
+                                                            disabled={busyAppointmentId === appointment.id}
+                                                            onClick={() => handleStatusChange(appointment.id, 'doctor-unavailable')}
+                                                            title="Clinic action: block this slot and automatically find a suitable replacement"
+                                                        >
+                                                            Doctor unavailable
                                                         </button>
                                                     </div>
                                                 )}
